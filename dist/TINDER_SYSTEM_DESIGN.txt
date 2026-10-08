@@ -1,0 +1,144 @@
+================================================================================
+              HIGH LEVEL SYSTEM DESIGN ARCHITECTURE: TINDER
+================================================================================
+Authors/Credits: Inspired by Rajneesh Verma, Avash Mitra, and Gaurav Sen 
+                 (InterviewReady System Design Series)
+
+--------------------------------------------------------------------------------
+1. SYSTEM REQUIREMENTS & SCOPE
+--------------------------------------------------------------------------------
+Prioritized Functional Requirements:
+1. Store profile data: Name, Age, Location (latitude/longitude), Bio, and 
+   up to 5 profile images per user.
+2. Issue authentication token via API Gateway upon signup/login.
+3. Recommend candidate profiles based on geographical location, age bounds, 
+   gender preferences, and past right/left swipe actions.
+4. Record mutual right-swipes as matches.
+5. Provide real-time 1-on-1 chat messaging between matched users.
+
+Out of Scope:
+- Profile moderation / content flagging.
+- Payment subscriptions (Tinder Gold/Platinum).
+- Enforcing daily swipe limits.
+
+
+--------------------------------------------------------------------------------
+2. CAPACITY ESTIMATIONS
+--------------------------------------------------------------------------------
+- Daily Active Users (DAU): 10,000,000 (10 Million)
+- Profile Images per user: 5 photos (~2 MB each)
+- Total Image Storage: 10M * 5 * 2 MB = 100 Terabytes (TB)
+- Matches per day: 0.1% of active users = 1,000,000 matches daily (~1,000/sec peak)
+- Concurrent Chat Sockets: ~2,000,000 persistent connection streams at peak.
+
+
+--------------------------------------------------------------------------------
+3. ARCHITECTURE COMPONENTS & FLOW
+--------------------------------------------------------------------------------
+[Client App] --> [API Gateway] --> [Microservices] --> [Databases & Caches]
+
+Components:
+1. API Gateway:
+   - Load balancing across service instances.
+   - Authentication token validation (JWT/OAuth2).
+   - Rate limiting and request routing.
+
+2. Distributed File System (DFS) & CDN:
+   - Stores 5 profile images per user in cloud object storage (S3/GCS).
+   - Serves static media via CDN nodes close to the user for low latency.
+
+3. Relational Database (User DB):
+   - Stores user attributes (name, age, location coordinates, bio).
+   - Sharded horizontally by geographical location.
+   - Configured in Master-Slave architecture for read resilience.
+
+4. Matcher Service & Match DB:
+   - Evaluates right-swipe events.
+   - Identifies mutual right-swipes and records matches in indexed tables.
+
+5. Session Service & Redis Cache:
+   - Tracks active user connection streams (UserID -> ConnectionID).
+   - Uses Redis cache to bypass database lookups on every message.
+
+6. XMPP Chat Cluster:
+   - Enables real-time peer-to-peer 1-on-1 messaging over persistent sockets.
+
+
+--------------------------------------------------------------------------------
+4. KEY DESIGN TRADE-OFFS
+--------------------------------------------------------------------------------
+Trade-off 1: Image Storage (Files in DFS vs. BLOB in Database)
+- Database BLOB: Offers mutability, transaction guarantees, and indexing, BUT 
+  these features are useless for static image files. Causes database bloat.
+- DFS + CDN (CHOSEN): Cheap, fast, highly scalable, and optimized for global 
+  edge caching.
+
+Trade-off 2: Messaging Protocol (HTTP Polling vs. XMPP / WebSockets)
+- HTTP Polling: Repeated polling wastes bandwidth, drains device battery, 
+  and overloads servers.
+- XMPP (CHOSEN): Peer-to-peer persistent socket protocol allows instantaneous 
+  bidirectional message delivery without polling.
+
+Trade-off 3: Match Details Storage (Client-side vs. Server-side)
+- Client-side: Saves server disk, but data is lost on app reinstall and easily 
+  tampered with.
+- Server-side (CHOSEN): Acts as immutable single source of truth, secure and 
+  durable.
+
+
+--------------------------------------------------------------------------------
+5. DATABASE SCHEMA DEFINITIONS
+--------------------------------------------------------------------------------
+Table: users
+  - user_id (VARCHAR 36, PRIMARY KEY)
+  - name (VARCHAR 100)
+  - age (INT)
+  - gender (VARCHAR 20)
+  - target_gender (VARCHAR 20)
+  - latitude (DECIMAL 9,6)
+  - longitude (DECIMAL 9,6)
+  - bio (TEXT)
+  - created_at (TIMESTAMP)
+  INDEX: idx_user_location (latitude, longitude)
+
+Table: matches
+  - match_id (VARCHAR 36, PRIMARY KEY)
+  - user_id_1 (VARCHAR 36)
+  - user_id_2 (VARCHAR 36)
+  - is_matched (BOOLEAN)
+  - created_at (TIMESTAMP)
+  UNIQUE CONSTRAINT: (user_id_1, user_id_2)
+
+Table: user_sessions
+  - connection_id (VARCHAR 64, PRIMARY KEY)
+  - user_id (VARCHAR 36)
+  - server_node_ip (VARCHAR 45)
+  - connected_at (TIMESTAMP)
+
+
+--------------------------------------------------------------------------------
+6. API ENDPOINTS SPECIFICATION
+--------------------------------------------------------------------------------
+Profile Service:
+  - POST /user/signup          -> Creates new account
+  - GET  /user/login           -> Returns authentication token
+  - GET  /user/:userID         -> Gets user profile
+  - PUT  /user/:userID         -> Updates profile details/location
+  - DELETE /user/:userID       -> Deletes user account
+
+Session Service:
+  - POST /session/connection/:userID1/:userID2 -> Links connection ID
+  - GET  /session/users/:connectionID          -> Returns connected user pair
+  - DELETE /session/connection/:connectionID    -> Removes session data
+
+Matcher Service:
+  - GET  /match                -> Returns all matches for logged-in user
+  - POST /swipe                -> Records user swipe action
+  - DELETE /match/:userID      -> Deletes user from match list
+
+Recommendation Service:
+  - GET  /recommendation       -> Returns ranked profile feed
+
+================================================================================
+                                END OF DOCUMENT
+================================================================================
