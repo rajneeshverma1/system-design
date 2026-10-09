@@ -17,6 +17,7 @@
 5. [Database Schema Design](#5-database-schema-design)
 6. [API Interface Specifications](#6-api-interface-specifications)
 7. [System Trade-Off Matrix](#7-system-trade-off-matrix)
+8. [LinkedIn Post & Diagram Templates](#8-linkedin-post--diagram-templates)
 
 ---
 
@@ -265,6 +266,17 @@ CREATE TABLE user_sessions (
 |                          |                       | + Master-Slave         | failover resilience      |
 +--------------------------+-----------------------+------------------------+--------------------------+
 ```
+
+---
+
+## 8. LinkedIn Post & Diagram Templates
+
+This repository includes production-ready assets for publishing Tinder's System Design on LinkedIn:
+
+- **LinkedIn Post Copy**: [`LINKEDIN_POST.md`](./LINKEDIN_POST.md) — Pre-formatted post matching Discord search architecture layout.
+- **SVG Vector Diagram**: [`tinder-architecture.svg`](./tinder-architecture.svg) — Dark-mode hand-drawn architecture diagram.
+- **Excalidraw Scene JSON**: [`tinder-excalidraw.json`](./tinder-excalidraw.json) — Editable template for [Excalidraw.com](https://excalidraw.com).
+- **Eraser.io Prompts & Syntax**: [`ERASER_DIAGRAM_PROMPT.md`](./ERASER_DIAGRAM_PROMPT.md) — Natural language AI prompts and Eraser markup code.
 
 ---
 
