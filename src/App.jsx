@@ -6,7 +6,8 @@ import DatabaseSchemaView from './components/DatabaseSchemaView';
 import ApiSimulatorView from './components/ApiSimulatorView';
 import CapacityCalculatorView from './components/CapacityCalculatorView';
 import MediumExportView from './components/MediumExportView';
-import { Network, Scale, Database, Code2, Calculator, BookOpen } from 'lucide-react';
+import LinkedInPostView from './components/LinkedInPostView';
+import { Network, Scale, Database, Code2, Calculator, BookOpen, Share2 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('architecture');
@@ -17,7 +18,8 @@ export default function App() {
     { id: 'database', label: 'Database & Schemas', icon: Database },
     { id: 'api', label: 'API Simulator', icon: Code2 },
     { id: 'capacity', label: 'Capacity Calculator', icon: Calculator },
-    { id: 'medium', label: 'Medium Article', icon: BookOpen }
+    { id: 'medium', label: 'Medium Article', icon: BookOpen },
+    { id: 'linkedin', label: 'LinkedIn Generator', icon: Share2 }
   ];
 
   return (
@@ -49,6 +51,7 @@ export default function App() {
         {activeTab === 'api' && <ApiSimulatorView />}
         {activeTab === 'capacity' && <CapacityCalculatorView />}
         {activeTab === 'medium' && <MediumExportView />}
+        {activeTab === 'linkedin' && <LinkedInPostView />}
       </main>
 
       <footer className="footer">
